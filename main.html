@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>todo-server</title>
+</head>
+<body>
+    <input id="title" type="text " placeholder="title"><br><br>
+    <input id="description" type="text " placeholder="description"><br><br>
+    <button onclick="addTodo()"> Add todo </button><br><br>
+    <div id="todos"></div>
+</body>
+<script>
+    //virtual DOM
+    let oldState = []
+    // convering mark as done to done
+    function markAsDone(id) {
+        const markButton = document.getElementById(id);        
+        markButton.children[2].innerHTML = "Done";
+    }
+    // adding newTdos
+    function addTodos (todosToAdd) {
+        const todos = document.getElementById("todos")
+        for (let i = 0; i < todosToAdd.length; i++) {
+            const title = todosToAdd[i]["title"]
+            const description = todosToAdd[i]["description"]
+            const id = todosToAdd[i]['id']
+            todos.appendChild(createChild(title, description, id))
+        }
+    }
+    // updaing todos
+    function updateTodos (updatedTodos) {
+        for (let i = 0; i < updatedTodos.length; i++) {
+            const parent = document.getElementById(updatedTodos[i]['id'])
+            const oldTodoTitle = parent.children[0]
+            const oldTodoDescription = parent.children[1]
+            oldTodoTitle.innerHTML = updatedTodos[i]['title']
+            oldTodoDescription.innerHTML = updatedTodos[i]['description']
+        }
+    }
+    // removing todos
+    function removeTodos (todosToRemove) {
+        const todos = document.getElementById("todos")
+        for (let i = 0; i < todosToRemove.length; i++) {
+            const todoToRemove = document.getElementById(todosToRemove[i]['id'])
+            todos.removeChild(todoToRemove)
+        }
+    }
+    // calculating diff
+    function calculatingDiff (oldState , newState) {
+        let todosToAdd = []
+
+        let todosToUpdate = newState.filter((newStateTodo) => {
+            for (let i  = 0; i < oldState.length; i++) {
+                if (oldState[i].id == newStateTodo.id) {
+                    return true;
+                }
+            }
+            todosToAdd.push(newStateTodo)
+            return false;
+        })
+        let todosToRemove = oldState.filter((oldStateTodo) => {
+            for (let i = 0; i < newState.length; i++) {
+                if (oldStateTodo.id == newState[i].id) {
+                    return false;
+                }
+            }
+            return true;
+        })
+        updateTodos(todosToUpdate);
+        removeTodos(todosToRemove)
+        addTodos(todosToAdd)
+    }
+    // adding todo
+    // function addTodo() {
+    //     id++;
+    //     const title = document.getElementById("title").value
+    //     const description = document.getElementById("description").value
+    //     todos.appendChild(createChild(title, description, id));
+    // }
+    // creating todo
+    function createChild(title , description , id) {
+        const parent = document.createElement("div");
+        const titleDiv = document.createElement("div");
+        const descriptionDiv = document.createElement("div");
+        const markAsDone = document.createElement("button");
+        markAsDone.setAttribute("onclick" , `markAsDone(${id})`)
+        markAsDone.innerHTML = 'Mark as done';
+        titleDiv.innerHTML = title;
+        descriptionDiv.innerHTML = description;
+        parent.setAttribute("id" , id);
+        parent.appendChild(titleDiv);        
+        parent.appendChild(descriptionDiv);        
+        parent.appendChild(markAsDone);   
+        return parent;     
+    }
+    // updating dom according to new state
+    function updateDomAccToState(newTodos) {
+        const todos = document.getElementById("todos");
+        for (let j = 0; j < newTodos.length; j++) {
+            const title = newTodos[j]["title"]
+            const description = newTodos[j]["description"]
+            const id = newTodos[j]["id"]
+            todos.append(createChild(title, description, id))
+        }
+    }
+    // getting the updated state
+    window.setInterval(async function() {
+        const res = await fetch("https://sum-server.100xdevs.com/todos")
+        const newState = await res.json();
+        calculatingDiff(oldState , newState.todos)
+        oldState = newState.todos
+    }, 5000)
+   
+</script>
+</html>
